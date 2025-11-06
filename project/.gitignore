@@ -6,7 +6,9 @@
 /storage/*.key
 /storage/pail
 /vendor
-.env
+
+# Including this in the commit for demo purposes
+# .env
 .env.backup
 .env.production
 .phpactor.json

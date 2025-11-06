@@ -4,18 +4,27 @@
 
 ## How to Install
 
-- In the `project/`, rename `.env.example` to `.env`
-
-- Move to the root folder and run `cd projects && docker-compose up -d`
+- Go to the project folder and run `docker-compose up -d`
 
 - Go inside the docker container: `docker exec -it app sh`
 
-- Once inside, run `composer install && php artisan migrate:fresh && php artisan db:seed`
+- Once inside the container, run `composer install && php artisan migrate --seed`
 
-- Build frontend: `npm run build`
+- Exit the container, and on host maching build frontend: frontend: `npm run build`
 
 - Open your browser and go to [http://localhost:8000](http://localhost:8000)
 
 ## What is in here?
 
 - Customer and Contacts with summary tables and detail forms
+- Included the .env in the commit for demo purposes
+
+## Screenshots
+
+[Screenshot 1](https://i.imgur.com/WfWlS3X)
+
+[Screenshot 2](https://i.imgur.com/nuOrM0A)
+
+[Screenshot 3](https://i.imgur.com/SaTKFlR.png)
+
+[Screenshot 4](https://i.imgur.com/lrP0S85.png)

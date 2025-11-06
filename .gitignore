@@ -1,4 +1,5 @@
 .idea/
 frontend/
 db
-.env
+# Including this in the commit for demo purposes
+# .env
