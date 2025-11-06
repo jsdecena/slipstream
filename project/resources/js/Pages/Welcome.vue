@@ -48,6 +48,7 @@ onMounted(() => {
 
 // Modal state
 const showModal = ref(false);
+const editingCustomerId = ref(null);
 
 // Form data
 const form = ref({
@@ -65,6 +66,7 @@ const isSubmitting = ref(false);
 const contacts = ref([]);
 
 const openModal = () => {
+    editingCustomerId.value = null;
     showModal.value = true;
     // Reset form when opening modal
     form.value = {
@@ -78,8 +80,41 @@ const openModal = () => {
     contacts.value = [];
 };
 
+const editCustomer = async (customerId) => {
+    try {
+        const response = await axios.get(`/customers/${customerId}`);
+        const customer = response.data;
+        
+        // Format date for date input (YYYY-MM-DD)
+        let formattedDate = '';
+        if (customer.start_date) {
+            const date = new Date(customer.start_date);
+            formattedDate = date.toISOString().split('T')[0];
+        }
+        
+        // Populate form with customer data
+        form.value = {
+            name: customer.name || '',
+            reference: customer.reference || '',
+            category: customer.category || 'Bronze',
+            start_date: formattedDate,
+            description: customer.description || '',
+        };
+        
+        editingCustomerId.value = customerId;
+        showModal.value = true;
+        errors.value = {};
+        // TODO: Load contacts when available
+        contacts.value = [];
+    } catch (error) {
+        console.error('Error fetching customer:', error);
+        alert('An error occurred while fetching customer data. Please try again.');
+    }
+};
+
 const closeModal = () => {
     showModal.value = false;
+    editingCustomerId.value = null;
     // Reset form when closing modal
     form.value = {
         name: '',
@@ -97,7 +132,13 @@ const submitForm = async () => {
     errors.value = {};
 
     try {
-        await axios.post('/customers', form.value);
+        if (editingCustomerId.value) {
+            // Update existing customer
+            await axios.put(`/customers/${editingCustomerId.value}`, form.value);
+        } else {
+            // Create new customer
+            await axios.post('/customers', form.value);
+        }
         
         // Refresh the customers list
         await fetchCustomers();
@@ -114,7 +155,8 @@ const submitForm = async () => {
         } else {
             // Handle other errors
             console.error('Error submitting form:', error);
-            alert('An error occurred while creating the customer. Please try again.');
+            const action = editingCustomerId.value ? 'updating' : 'creating';
+            alert(`An error occurred while ${action} the customer. Please try again.`);
         }
     } finally {
         isSubmitting.value = false;
@@ -221,6 +263,7 @@ const submitForm = async () => {
                                         <div class="flex space-x-2">
                                             <button
                                                 type="button"
+                                                @click="editCustomer(customer.id)"
                                                 class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                             >
                                                 Edit
@@ -250,7 +293,9 @@ const submitForm = async () => {
             <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full mx-4 my-8">
                 <!-- Header -->
                 <div class="flex justify-between items-center p-6 border-b border-gray-200">
-                    <h2 class="text-xl font-bold text-gray-800">Customers - Detail</h2>
+                    <h2 class="text-xl font-bold text-gray-800">
+                        {{ editingCustomerId ? 'Edit Customer' : 'Create Customer' }} - Detail
+                    </h2>
                     <div class="flex items-center space-x-4">
                         <button 
                             @click="closeModal"

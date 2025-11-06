@@ -17,6 +17,26 @@ Route::get('/customers', function () {
     return response()->json($data);
 });
 
+// FEtch the single customer
+Route::get('/customers/{id}', function ($id) {
+    $data = Customer::findOrFail($id);
+    return response()->json($data);
+});
+
+// Updates the single customer
+Route::put('/customers/{id}', function ($id, StoreCustomerRequest $request) {
+    $customer = Customer::findOrFail($id);
+    $customer->update([
+        'name' => $request->name,
+        'reference' => $request->reference,
+        'category' => $request->category,
+        'start_date' => $request->start_date,
+        'description' => $request->description,
+    ]);
+    $customer->refresh();
+    return response()->json($customer);
+});
+
 // Create customers
 Route::post('/customers', function (StoreCustomerRequest $request) {
     $data = Customer::create([
