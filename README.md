@@ -12,12 +12,10 @@
 
 - Once inside, run `composer install && php artisan migrate:fresh && php artisan db:seed`
 
+- Build frontend: `npm run build`
+
 - Open your browser and go to [http://localhost:8000](http://localhost:8000)
 
 ## What is in here?
 
 - Customer and Contacts with summary tables and detail forms
-
-## What is not in here?
-
-- Authentication. Left out authentication for demonstration purposes.
