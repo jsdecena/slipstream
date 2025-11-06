@@ -65,6 +65,15 @@ const isSubmitting = ref(false);
 // Contacts data
 const contacts = ref([]);
 
+// Contact modal state
+const showContactModal = ref(false);
+const contactForm = ref({
+    first_name: '',
+    last_name: '',
+});
+const contactErrors = ref({});
+const isSubmittingContact = ref(false);
+
 const openModal = () => {
     editingCustomerId.value = null;
     showModal.value = true;
@@ -161,6 +170,56 @@ const submitForm = async () => {
     } finally {
         isSubmitting.value = false;
     }
+};
+
+// Contact modal functions
+const openContactModal = () => {
+    showContactModal.value = true;
+    contactForm.value = {
+        first_name: '',
+        last_name: '',
+    };
+    contactErrors.value = {};
+};
+
+const closeContactModal = () => {
+    showContactModal.value = false;
+    contactForm.value = {
+        first_name: '',
+        last_name: '',
+    };
+    contactErrors.value = {};
+};
+
+const submitContactForm = () => {
+    isSubmittingContact.value = true;
+    contactErrors.value = {};
+
+    // Basic validation
+    if (!contactForm.value.first_name.trim()) {
+        contactErrors.value.first_name = 'First name is required.';
+        isSubmittingContact.value = false;
+        return;
+    }
+
+    if (!contactForm.value.last_name.trim()) {
+        contactErrors.value.last_name = 'Last name is required.';
+        isSubmittingContact.value = false;
+        return;
+    }
+
+    // For now, just add to the contacts array (backend will be wired up later)
+    const newContact = {
+        id: Date.now(), // Temporary ID
+        first_name: contactForm.value.first_name,
+        last_name: contactForm.value.last_name,
+    };
+    
+    contacts.value.push(newContact);
+    
+    // Close modal and reset form
+    closeContactModal();
+    isSubmittingContact.value = false;
 };
 </script>
 
@@ -398,10 +457,10 @@ const submitForm = async () => {
                         </div>
 
                         <!-- Contacts Section -->
-                        <div class="border border-gray-200 rounded-lg p-6">
+                        <div v-if="editingCustomerId" class="border border-gray-200 rounded-lg p-6">
                             <div class="flex justify-between items-center mb-4">
                                 <h3 class="text-lg font-semibold text-gray-800">Contacts</h3>
-                                <PrimaryButton type="button">
+                                <PrimaryButton type="button" @click="openContactModal">
                                     Create
                                 </PrimaryButton>
                             </div>
@@ -456,6 +515,75 @@ const submitForm = async () => {
                                     </tbody>
                                 </table>
                             </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Modal -->
+        <div 
+            v-if="showContactModal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] overflow-y-auto py-8"
+            @click.self="closeContactModal"
+        >
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 my-8">
+                <!-- Header -->
+                <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-gray-800">
+                        Create Contact
+                    </h2>
+                    <button 
+                        @click="closeContactModal"
+                        class="text-gray-600 hover:text-gray-800 transition"
+                    >
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                    <form id="contact-form" @submit.prevent="submitContactForm" class="space-y-6">
+                        <!-- First Name Field -->
+                        <div>
+                            <InputLabel for="first_name" value="First Name" />
+                            <TextInput
+                                id="first_name"
+                                v-model="contactForm.first_name"
+                                type="text"
+                                class="mt-1 block w-full"
+                                required
+                            />
+                            <InputError :message="contactErrors.first_name" class="mt-2" />
+                        </div>
+
+                        <!-- Last Name Field -->
+                        <div>
+                            <InputLabel for="last_name" value="Last Name" />
+                            <TextInput
+                                id="last_name"
+                                v-model="contactForm.last_name"
+                                type="text"
+                                class="mt-1 block w-full"
+                                required
+                            />
+                            <InputError :message="contactErrors.last_name" class="mt-2" />
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="flex justify-end space-x-3 pt-4">
+                            <button 
+                                type="button"
+                                @click="closeContactModal"
+                                class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+                            >
+                                Cancel
+                            </button>
+                            <PrimaryButton type="submit" :disabled="isSubmittingContact">
+                                {{ isSubmittingContact ? 'Saving...' : 'Save' }}
+                            </PrimaryButton>
                         </div>
                     </form>
                 </div>
