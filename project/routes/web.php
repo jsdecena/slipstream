@@ -16,7 +16,7 @@ Route::get('/', function () {
 // ================================= Customers endpoint 
 // FEtch all the customers
 Route::get('/customers', function () {
-    $data = Customer::paginate(25);
+    $data = Customer::withCount('contacts')->paginate(25);
     return response()->json($data);
 });
 
