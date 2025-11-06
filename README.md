@@ -2,15 +2,19 @@
 
 ## Included a docker installation to easily boot up the project
 
+## Requirements
+- Docker
+- NodeJs on host machine
+
 ## How to Install
 
 - Go to the project folder and run `docker-compose up -d`
 
 - Go inside the docker container: `docker exec -it app sh`
 
-- Once inside the container, run `composer install && php artisan migrate --seed`
+- Once inside the container, run `composer install && php artisan migrate`
 
-- Exit the container, and on host maching build frontend: frontend: `npm run build`
+- Exit the container, and on host maching build frontend: `cd project && npm i && run build`
 
 - Open your browser and go to [http://localhost:8000](http://localhost:8000)
 
