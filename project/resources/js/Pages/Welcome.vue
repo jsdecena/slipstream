@@ -64,20 +64,25 @@ const isSubmitting = ref(false);
 
 // Contacts data
 const contacts = ref([]);
+const isLoadingContacts = ref(false);
 
 // Fetch contacts for a customer
 const fetchContacts = async (customerId) => {
+    isLoadingContacts.value = true;
     try {
         const response = await axios.get(`/customers/${customerId}/contacts`);
         contacts.value = response.data || [];
     } catch (error) {
         console.error('Error fetching contacts:', error);
         contacts.value = [];
+    } finally {
+        isLoadingContacts.value = false;
     }
 };
 
 // Contact modal state
 const showContactModal = ref(false);
+const editingContactId = ref(null);
 const contactForm = ref({
     first_name: '',
     last_name: '',
@@ -190,6 +195,7 @@ const openContactModal = () => {
         alert('Please select a customer first.');
         return;
     }
+    editingContactId.value = null;
     showContactModal.value = true;
     contactForm.value = {
         first_name: '',
@@ -198,8 +204,29 @@ const openContactModal = () => {
     contactErrors.value = {};
 };
 
+const editContact = async (contactId) => {
+    try {
+        const response = await axios.get(`/contacts/${contactId}`);
+        const contact = response.data;
+        
+        // Populate form with contact data
+        contactForm.value = {
+            first_name: contact.first_name || '',
+            last_name: contact.last_name || '',
+        };
+        
+        editingContactId.value = contactId;
+        showContactModal.value = true;
+        contactErrors.value = {};
+    } catch (error) {
+        console.error('Error fetching contact:', error);
+        alert('An error occurred while fetching contact data. Please try again.');
+    }
+};
+
 const closeContactModal = () => {
     showContactModal.value = false;
+    editingContactId.value = null;
     contactForm.value = {
         first_name: '',
         last_name: '',
@@ -219,12 +246,21 @@ const submitContactForm = async () => {
     }
 
     try {
-        // Create contact via API
-        const response = await axios.post('/contacts', {
-            first_name: contactForm.value.first_name,
-            last_name: contactForm.value.last_name,
-            customer_id: editingCustomerId.value,
-        });
+        if (editingContactId.value) {
+            // Update existing contact
+            await axios.put(`/contacts/${editingContactId.value}`, {
+                first_name: contactForm.value.first_name,
+                last_name: contactForm.value.last_name,
+                customer_id: editingCustomerId.value,
+            });
+        } else {
+            // Create new contact
+            await axios.post('/contacts', {
+                first_name: contactForm.value.first_name,
+                last_name: contactForm.value.last_name,
+                customer_id: editingCustomerId.value,
+            });
+        }
         
         // Refresh contacts list
         await fetchContacts(editingCustomerId.value);
@@ -239,8 +275,9 @@ const submitContactForm = async () => {
                 contactErrors.value[key] = Array.isArray(value) ? value[0] : value;
             }
         } else {
-            console.error('Error creating contact:', error);
-            alert('An error occurred while creating the contact. Please try again.');
+            console.error('Error submitting contact form:', error);
+            const action = editingContactId.value ? 'updating' : 'creating';
+            alert(`An error occurred while ${action} the contact. Please try again.`);
         }
     } finally {
         isSubmittingContact.value = false;
@@ -492,7 +529,14 @@ const submitContactForm = async () => {
                             
                             <!-- Contacts Table -->
                             <div class="overflow-x-auto">
-                                <table class="w-full">
+                                <!-- Loading State -->
+                                <div v-if="isLoadingContacts" class="flex flex-col items-center justify-center py-12">
+                                    <i class="fas fa-spinner fa-spin text-blue-600 text-3xl mb-4"></i>
+                                    <p class="text-sm text-gray-500">Loading contacts...</p>
+                                </div>
+                                
+                                <!-- Contacts Table -->
+                                <table v-else class="w-full">
                                     <thead class="bg-gray-50">
                                         <tr>
                                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -523,6 +567,7 @@ const submitContactForm = async () => {
                                                 <div class="flex space-x-3">
                                                     <button
                                                         type="button"
+                                                        @click="editContact(contact.id)"
                                                         class="text-blue-600 hover:text-blue-800"
                                                     >
                                                         Edit
@@ -556,7 +601,7 @@ const submitContactForm = async () => {
                 <!-- Header -->
                 <div class="flex justify-between items-center p-6 border-b border-gray-200">
                     <h2 class="text-xl font-bold text-gray-800">
-                        Create Contact
+                        {{ editingContactId ? 'Edit Contact' : 'Create Contact' }}
                     </h2>
                     <button 
                         @click="closeContactModal"

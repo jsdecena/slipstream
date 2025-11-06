@@ -61,7 +61,7 @@ Route::post('/customers', function (StoreCustomerRequest $request) {
 
 
 // ================================= Contacts endpoint 
-// Create customers
+// CREATE customers
 Route::post('/contacts', function (StoreContactRequest $request) {
     $data = Contact::create([
         'first_name' => $request->first_name,
@@ -72,14 +72,20 @@ Route::post('/contacts', function (StoreContactRequest $request) {
     return response()->json($data);
 });
 
-// Create customers
+// GET single contact
+Route::get('/contacts/{id}', function ($id) {
+    $data = Contact::findOrFail($id);
+    return response()->json($data);
+});
+
+// UPDATE contact
 Route::put('/contacts/{id}', function ($id, StoreContactRequest $request) {
     $contact = Contact::findOrFail($id);
-    $data = $contact->update([
+    $contact->update([
         'first_name' => $request->first_name,
         'last_name' => $request->last_name,
         'customer_id' => $request->customer_id,
     ]);
-
-    return response()->json($data);
+    $contact->refresh();
+    return response()->json($contact);
 });
