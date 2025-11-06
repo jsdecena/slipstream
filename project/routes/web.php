@@ -59,6 +59,13 @@ Route::post('/customers', function (StoreCustomerRequest $request) {
     return response()->json($data, 201);
 });
 
+// DELETE single customer
+Route::delete('/customers/{id}', function ($id) {
+    $data = Customer::findOrFail($id);
+    $data->delete();
+    return response()->json(['message' => 'Deleted customer']);
+});
+
 
 // ================================= Contacts endpoint 
 // CREATE customers
@@ -88,4 +95,11 @@ Route::put('/contacts/{id}', function ($id, StoreContactRequest $request) {
     ]);
     $contact->refresh();
     return response()->json($contact);
+});
+
+// DELETE single contact
+Route::delete('/contacts/{id}', function ($id) {
+    $data = Contact::findOrFail($id);
+    $data->delete();
+    return response()->json(['message' => 'Deleted contact']);
 });

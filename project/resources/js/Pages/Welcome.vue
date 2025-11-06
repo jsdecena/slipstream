@@ -90,6 +90,12 @@ const contactForm = ref({
 const contactErrors = ref({});
 const isSubmittingContact = ref(false);
 
+// Delete confirmation modal state
+const showDeleteModal = ref(false);
+const deleteType = ref(null); // 'customer' or 'contact'
+const deleteId = ref(null);
+const isDeleting = ref(false);
+
 const openModal = () => {
     editingCustomerId.value = null;
     showModal.value = true;
@@ -265,6 +271,9 @@ const submitContactForm = async () => {
         // Refresh contacts list
         await fetchContacts(editingCustomerId.value);
         
+        // Refresh the customers list to update contact counts
+        await fetchCustomers();
+        
         // Close modal and reset form
         closeContactModal();
     } catch (error) {
@@ -282,6 +291,67 @@ const submitContactForm = async () => {
     } finally {
         isSubmittingContact.value = false;
     }
+};
+
+// Open delete confirmation modal
+const openDeleteModal = (type, id) => {
+    deleteType.value = type;
+    deleteId.value = id;
+    showDeleteModal.value = true;
+};
+
+// Close delete confirmation modal
+const closeDeleteModal = () => {
+    showDeleteModal.value = false;
+    deleteType.value = null;
+    deleteId.value = null;
+    isDeleting.value = false;
+};
+
+// Confirm and execute delete
+const confirmDelete = async () => {
+    isDeleting.value = true;
+
+    try {
+        if (deleteType.value === 'customer') {
+            await axios.delete(`/customers/${deleteId.value}`);
+            
+            // If we're editing this customer, close the edit modal first
+            if (editingCustomerId.value === deleteId.value) {
+                closeModal();
+            }
+            
+            // Refresh the customers list
+            await fetchCustomers();
+        } else if (deleteType.value === 'contact') {
+            await axios.delete(`/contacts/${deleteId.value}`);
+            
+            // Refresh contacts list if we have a customer selected
+            if (editingCustomerId.value) {
+                await fetchContacts(editingCustomerId.value);
+            }
+            
+            // Refresh the customers list to update contact counts
+            await fetchCustomers();
+        }
+        
+        // Close the delete modal
+        closeDeleteModal();
+    } catch (error) {
+        console.error(`Error deleting ${deleteType.value}:`, error);
+        alert(`An error occurred while deleting the ${deleteType.value}. Please try again.`);
+        isDeleting.value = false;
+    }
+};
+
+// Delete customer (opens confirmation modal)
+const deleteCustomer = (customerId) => {
+    openDeleteModal('customer', customerId);
+};
+
+// Delete contact (opens confirmation modal)
+const deleteContact = (contactId) => {
+    openDeleteModal('contact', contactId);
 };
 </script>
 
@@ -391,6 +461,7 @@ const submitContactForm = async () => {
                                             </button>
                                             <button
                                                 type="button"
+                                                @click="deleteCustomer(customer.id)"
                                                 class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                                             >
                                                 Delete
@@ -575,6 +646,7 @@ const submitContactForm = async () => {
                                                     <span class="text-gray-300">|</span>
                                                     <button
                                                         type="button"
+                                                        @click="deleteContact(contact.id)"
                                                         class="text-red-600 hover:text-red-800"
                                                     >
                                                         Delete
@@ -656,6 +728,65 @@ const submitContactForm = async () => {
                             </PrimaryButton>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Confirmation Modal -->
+        <div 
+            v-if="showDeleteModal"
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70] overflow-y-auto py-8"
+            @click.self="closeDeleteModal"
+        >
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 my-8">
+                <!-- Header -->
+                <div class="flex justify-between items-center p-6 border-b border-gray-200">
+                    <h2 class="text-xl font-bold text-red-600">
+                        Confirm Delete
+                    </h2>
+                    <button 
+                        @click="closeDeleteModal"
+                        :disabled="isDeleting"
+                        class="text-gray-600 hover:text-gray-800 transition"
+                    >
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                    <div class="mb-6">
+                        <div class="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full">
+                            <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                        <p class="text-lg font-semibold text-gray-800 text-center mb-2">
+                            Are you sure you want to delete your {{ deleteType === 'customer' ? 'customer' : 'contact' }}?
+                        </p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button 
+                            type="button"
+                            @click="closeDeleteModal"
+                            :disabled="isDeleting"
+                            class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            @click="confirmDelete"
+                            :disabled="isDeleting"
+                            class="px-4 py-2 text-white bg-red-600 rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {{ isDeleting ? 'Deleting...' : 'Delete' }}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
