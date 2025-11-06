@@ -1,27 +1,31 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use Illuminate\Foundation\Application;
+use App\Http\Requests\StoreCustomerRequest;
+use App\Models\Customer;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
+// For simplicity, we inject data here instead of using controllers for demo purposes
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
+    // exclusively return the template, we do data manipulation on another method below
+    return Inertia::render('Welcome');
+});
+
+// FEtch the customers
+Route::get('/customers', function () {
+    $data = Customer::paginate(25);
+    return response()->json($data);
+});
+
+// Create customers
+Route::post('/customers', function (StoreCustomerRequest $request) {
+    $data = Customer::create([
+        'name' => $request->name,
+        'reference' => $request->reference,
+        'category' => $request->category,
+        'start_date' => $request->start_date,
+        'description' => $request->description,
     ]);
+
+    return response()->json($data, 201);
 });
-
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
-
-require __DIR__.'/auth.php';
