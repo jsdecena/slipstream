@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Requests\StoreCustomerRequest;
+use App\Http\Requests\StoreContactRequest;
+use App\Models\Contact;
 use App\Models\Customer;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -11,7 +13,8 @@ Route::get('/', function () {
     return Inertia::render('Welcome');
 });
 
-// FEtch the customers
+// ================================= Customers endpoint 
+// FEtch all the customers
 Route::get('/customers', function () {
     $data = Customer::paginate(25);
     return response()->json($data);
@@ -21,6 +24,12 @@ Route::get('/customers', function () {
 Route::get('/customers/{id}', function ($id) {
     $data = Customer::findOrFail($id);
     return response()->json($data);
+});
+
+// Fetch the customer's contacts
+Route::get('/customers/{id}/contacts', function ($id) {
+    $customer = Customer::findOrFail($id);
+    return response()->json($customer->contacts);
 });
 
 // Updates the single customer
@@ -48,4 +57,29 @@ Route::post('/customers', function (StoreCustomerRequest $request) {
     ]);
 
     return response()->json($data, 201);
+});
+
+
+// ================================= Contacts endpoint 
+// Create customers
+Route::post('/contacts', function (StoreContactRequest $request) {
+    $data = Contact::create([
+        'first_name' => $request->first_name,
+        'last_name' => $request->last_name,
+        'customer_id' => $request->customer_id,
+    ]);
+
+    return response()->json($data);
+});
+
+// Create customers
+Route::put('/contacts/{id}', function ($id, StoreContactRequest $request) {
+    $contact = Contact::findOrFail($id);
+    $data = $contact->update([
+        'first_name' => $request->first_name,
+        'last_name' => $request->last_name,
+        'customer_id' => $request->customer_id,
+    ]);
+
+    return response()->json($data);
 });

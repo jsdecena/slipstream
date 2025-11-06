@@ -33,5 +33,13 @@ class Customer extends Model
             'start_date' => 'date',
         ];
     }
+
+    /**
+     * Get the contacts for the customer.
+     */
+    public function contacts()
+    {
+        return $this->hasMany(Contact::class);
+    }
 }
 

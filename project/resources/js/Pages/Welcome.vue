@@ -65,6 +65,17 @@ const isSubmitting = ref(false);
 // Contacts data
 const contacts = ref([]);
 
+// Fetch contacts for a customer
+const fetchContacts = async (customerId) => {
+    try {
+        const response = await axios.get(`/customers/${customerId}/contacts`);
+        contacts.value = response.data || [];
+    } catch (error) {
+        console.error('Error fetching contacts:', error);
+        contacts.value = [];
+    }
+};
+
 // Contact modal state
 const showContactModal = ref(false);
 const contactForm = ref({
@@ -113,8 +124,9 @@ const editCustomer = async (customerId) => {
         editingCustomerId.value = customerId;
         showModal.value = true;
         errors.value = {};
-        // TODO: Load contacts when available
-        contacts.value = [];
+        
+        // Load contacts for this customer
+        await fetchContacts(customerId);
     } catch (error) {
         console.error('Error fetching customer:', error);
         alert('An error occurred while fetching customer data. Please try again.');
@@ -174,6 +186,10 @@ const submitForm = async () => {
 
 // Contact modal functions
 const openContactModal = () => {
+    if (!editingCustomerId.value) {
+        alert('Please select a customer first.');
+        return;
+    }
     showContactModal.value = true;
     contactForm.value = {
         first_name: '',
@@ -191,35 +207,44 @@ const closeContactModal = () => {
     contactErrors.value = {};
 };
 
-const submitContactForm = () => {
+const submitContactForm = async () => {
     isSubmittingContact.value = true;
     contactErrors.value = {};
 
-    // Basic validation
-    if (!contactForm.value.first_name.trim()) {
-        contactErrors.value.first_name = 'First name is required.';
+    // Ensure we have a customer ID
+    if (!editingCustomerId.value) {
+        alert('Please select a customer first.');
         isSubmittingContact.value = false;
         return;
     }
 
-    if (!contactForm.value.last_name.trim()) {
-        contactErrors.value.last_name = 'Last name is required.';
+    try {
+        // Create contact via API
+        const response = await axios.post('/contacts', {
+            first_name: contactForm.value.first_name,
+            last_name: contactForm.value.last_name,
+            customer_id: editingCustomerId.value,
+        });
+        
+        // Refresh contacts list
+        await fetchContacts(editingCustomerId.value);
+        
+        // Close modal and reset form
+        closeContactModal();
+    } catch (error) {
+        if (error.response && error.response.status === 422) {
+            const validationErrors = error.response.data.errors || {};
+            contactErrors.value = {};
+            for (const [key, value] of Object.entries(validationErrors)) {
+                contactErrors.value[key] = Array.isArray(value) ? value[0] : value;
+            }
+        } else {
+            console.error('Error creating contact:', error);
+            alert('An error occurred while creating the contact. Please try again.');
+        }
+    } finally {
         isSubmittingContact.value = false;
-        return;
     }
-
-    // For now, just add to the contacts array (backend will be wired up later)
-    const newContact = {
-        id: Date.now(), // Temporary ID
-        first_name: contactForm.value.first_name,
-        last_name: contactForm.value.last_name,
-    };
-    
-    contacts.value.push(newContact);
-    
-    // Close modal and reset form
-    closeContactModal();
-    isSubmittingContact.value = false;
 };
 </script>
 
